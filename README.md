@@ -86,4 +86,24 @@ This is the place for you to write reflections:
 
 #### Reflection Subscriber-1
 
+### 1. Penggunaan `RwLock<>` vs `Mutex<>` untuk Sinkronisasi `Vec`
+Pada kasus ini, kita menggunakan `RwLock<>` (Read-Write Lock) alih-alih `Mutex<>` (Mutual Exclusion) karena perbedaan cara keduanya menangani akses konkurensi, yang sangat memengaruhi performa aplikasi.
+
+* **`RwLock<>`** memungkinkan *banyak thread* untuk membaca (read) data secara bersamaan, asalkan tidak ada yang sedang menulis. Namun, jika ada thread yang ingin menulis (write/modify), thread tersebut akan mendapatkan akses eksklusif, dan thread pembaca lainnya harus menunggu.
+* **`Mutex<>`** sangat ketat; ia hanya mengizinkan *satu thread* saja yang dapat mengakses data pada satu waktu, tidak peduli apakah thread tersebut hanya ingin membaca atau ingin menulis.
+
+**Mengapa ini diperlukan untuk `Vec` Notifications?**
+Dalam aplikasi *Receiver*, aksi untuk melihat daftar notifikasi (membaca data) jauh lebih sering terjadi dibandingkan aksi menerima notifikasi baru (menulis/menambah data). Dengan menggunakan `RwLock`, ratusan pengguna dapat melihat halaman notifikasi mereka secara bersamaan tanpa saling memblokir. Jika kita menggunakan `Mutex`, setiap pengguna yang hanya ingin melihat notifikasi harus menunggu giliran satu per satu, yang tentunya akan menciptakan *bottleneck* (kemacetan) dan menurunkan performa aplikasi secara drastis.
+
+### 2. Penggunaan `lazy_static` dan Aturan Variabel Statis di Rust vs Java
+Di bahasa pemrograman seperti Java, kita bisa dengan mudah membuat dan memodifikasi variabel global `static`. Sayangnya, kemudahan ini sering kali menjadi sumber masalah *data race* di lingkungan *multi-threading* jika tidak dikelola dengan blok *synchronized* yang benar, karena banyak thread bisa mengubah data tersebut bersamaan secara sembarangan.
+
+Rust dirancang dengan prinsip **fearless concurrency** dan keamanan memori yang ketat di tingkat kompilator (*compile-time*). Oleh karena itu, Rust tidak mengizinkan kita memutasi variabel `static` secara langsung karena secara bawaan hal tersebut tidak aman (*unsafe*) dan pasti memicu *data race*.
+
+Selain masalah keamanan, ada masalah **waktu inisialisasi**. Di Rust, variabel `static` harus memiliki nilai yang sudah diketahui dan dialokasikan saat kode dikompilasi (*compile-time*). Namun, struktur data kompleks seperti `Vec` atau `DashMap` memerlukan alokasi memori dinamis (*heap allocation*) yang hanya bisa dilakukan saat aplikasi sudah berjalan (*runtime*).
+
+Di sinilah **`lazy_static`** (atau `once_cell`) sangat dibutuhkan. *Library* ini menyelesaikan dua masalah tersebut dengan cara:
+1. Menunda (*lazy*) inisialisasi variabel statis tersebut sampai ia pertama kali dipanggil atau diakses saat *runtime*.
+2. Membungkusnya agar aman diakses oleh banyak *thread* tanpa melanggar aturan keamanan memori Rust.
+
 #### Reflection Subscriber-2
