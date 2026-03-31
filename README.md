@@ -107,3 +107,29 @@ Di sinilah **`lazy_static`** (atau `once_cell`) sangat dibutuhkan. *Library* ini
 2. Membungkusnya agar aman diakses oleh banyak *thread* tanpa melanggar aturan keamanan memori Rust.
 
 #### Reflection Subscriber-2
+# BambangShop Receiver App - Reflection
+
+**Nama:** Clairine Christabel Lim  
+**NPM:** 2406359941  
+**Kelas:** B
+
+## Reflection Subscriber-2
+
+### 1. Eksplorasi di Luar Langkah Tutorial (contoh: `src/lib.rs`)
+Ya, saya menyempatkan diri untuk mengeksplorasi kode di luar langkah-langkah wajib tutorial, khususnya pada `src/lib.rs` dan struktur modul lainnya.
+
+Dari eksplorasi tersebut, saya belajar tentang praktik terbaik (*best practices*) dalam pemrograman Rust, yaitu pemisahan antara *binary crate* (`src/main.rs`) dan *library crate* (`src/lib.rs`). File `src/main.rs` hanya bertugas sebagai titik masuk aplikasi (menjalankan *server*), sedangkan seluruh logika utama, definisi *struct*, dan pengelolaan *routing* diatur di dalam `src/lib.rs`. Saya juga melihat bagaimana *App State* (status aplikasi) didaftarkan dan dibagikan ke seluruh *handler* API sehingga setiap modul bisa mengakses konfigurasi yang sama tanpa harus membuat ulang *instance*.
+
+### 2. Kemudahan Observer Pattern dan Tantangan Multi-Instance Main App
+**Menambahkan lebih banyak *Subscriber*:**
+Pola *Observer* membuat penambahan *Subscriber* baru (seperti menjalankan beberapa *instance* dari aplikasi Receiver) menjadi sangat mudah. Hal ini karena adanya **loose coupling** (keterikatan yang longgar). *Main app* (sebagai *Publisher*) tidak perlu tahu implementasi internal dari *Receiver*. Selama *Receiver* menyediakan *endpoint* URL yang valid untuk didaftarkan dan bisa menerima *payload* JSON yang disepakati, *Main app* tinggal menambahkan URL tersebut ke dalam daftarnya dan melakukan *broadcast* saat ada pembaruan.
+
+**Menjalankan lebih dari satu *instance Main app*:**
+Jika kita menjalankan beberapa *instance Main app*, penambahan sistem **tidak akan semudah sebelumnya**. Saat ini, daftar *Subscriber* disimpan di dalam memori internal aplikasi (menggunakan variabel statis `DashMap`). Jika ada dua *Main app* yang berjalan, masing-masing akan memiliki `DashMap` (daftar *subscriber*) sendiri yang saling tidak sinkron. Untuk menyelesaikannya dan membuat sistem bisa di-s*cale*, kita tidak bisa lagi menggunakan memori internal. Kita harus menggunakan *Message Broker* eksternal (seperti RabbitMQ, Kafka, atau Redis Pub/Sub) atau *database* terpusat agar semua *instance Main app* berbagi daftar *Subscriber* yang sama.
+
+### 3. Pembuatan Test Mandiri dan Dokumentasi Postman
+Ya, saya telah mencoba membuat dan mengeksplorasi dokumentasi *Collection* di Postman. Penggunaan fitur ini sangatlah berguna, baik untuk pengerjaan tutorial maupun untuk *Group Project* nantinya.
+
+Manfaat utama yang saya rasakan:
+* **Pengujian yang Konsisten:** Dengan Postman, saya bisa menyimpan berbagai skenario *request* (seperti *payload* yang benar, *payload* yang salah, atau data kosong) dan menjalankannya berulang kali tanpa harus mengetik ulang URL atau JSON *body* secara manual.
+* **Kolaborasi Tim:** Dokumentasi API di Postman berfungsi sebagai "kontrak" yang jelas. Pada *Group Project*, tim *Frontend* tidak perlu membaca kode *Backend* Rust saya untuk tahu cara memanggil API. Mereka cukup melihat dokumentasi Postman yang sudah berisi contoh *endpoint*, *header* yang dibutuhkan, dan ekspektasi *response*. Hal ini sangat mempercepat proses integrasi antar tim.
